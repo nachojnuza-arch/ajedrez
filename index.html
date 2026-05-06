@@ -2,28 +2,27 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Ajedrez Pro: Stockfish y Análisis</title>
     
-    <!-- Configuración PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
     <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg">
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- chess.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <style>
-        .board-wrapper {
-            position: relative; width: 100%; max-width: 500px; margin: 0 auto; display: flex; flex-direction: row; background-color: #1e293b; padding: 4px; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-        }
-        .board-container {
-            display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: 100%; aspect-ratio: 1; border: 2px solid #334155; border-radius: 0.25rem; overflow: hidden;
-        }
-        .fullscreen-mode {
-            position: fixed !important; top: 0; left: 0; right: 0; bottom: 0; z-index: 40; background-color: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px;
-        }
+        /* Estilos Generales y Vistas */
+        body { -webkit-tap-highlight-color: transparent; }
+        .view { display: none; width: 100%; animation: fadeIn 0.3s ease-in-out; }
+        .view.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Tablero Responsive */
+        .board-wrapper { position: relative; width: 100%; max-width: 500px; margin: 0 auto; display: flex; flex-direction: row; background-color: #1e293b; padding: 4px; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); }
+        .board-container { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: 100%; aspect-ratio: 1; border: 2px solid #334155; border-radius: 0.25rem; overflow: hidden; }
+        
+        .fullscreen-mode { position: fixed !important; top: 0; left: 0; right: 0; bottom: 0; z-index: 40; background-color: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; }
         .fullscreen-mode .board-wrapper { max-width: 90vmin; max-height: 90vmin; }
         .fullscreen-mode .clock-panel { max-width: 90vmin; }
 
@@ -31,8 +30,10 @@
         .square-light { background-color: #ebecd0; }
         .square-dark { background-color: #739552; }
         
-        .piece { width: 90%; height: 90%; background-size: contain; background-repeat: no-repeat; background-position: center; user-select: none; cursor: pointer; z-index: 10; transition: transform 0.1s; }
+        /* Aceleración por hardware para móviles */
+        .piece { width: 90%; height: 90%; background-size: contain; background-repeat: no-repeat; background-position: center; user-select: none; cursor: pointer; z-index: 10; transition: transform 0.1s; will-change: transform; transform: translateZ(0); }
         
+        /* Materiales de Piezas */
         .style-plastico .piece { filter: drop-shadow(0 3px 3px rgba(0,0,0,0.4)); }
         .style-madera .piece { filter: drop-shadow(0 3px 2px rgba(0,0,0,0.5)) sepia(0.6) saturate(1.3) hue-rotate(-10deg) brightness(0.9); }
         .style-metal .piece { filter: drop-shadow(2px 4px 4px rgba(0,0,0,0.7)) grayscale(1) contrast(1.4) brightness(1.1); }
@@ -42,6 +43,7 @@
         .last-move { background-color: rgba(255, 255, 0, 0.4); }
         .valid-move::after { content: ''; position: absolute; width: 30%; height: 30%; background-color: rgba(0, 0, 0, 0.15); border-radius: 50%; z-index: 5; }
 
+        /* Reloj y UI */
         .clock { font-variant-numeric: tabular-nums; }
         .clock.low-time { color: #ef4444; animation: pulse 1s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
@@ -56,161 +58,190 @@
         .progress-bar { transition: width 0.3s ease; }
         .badge-eval { position: absolute; top: -15%; right: -15%; width: 40%; height: 40%; max-width: 28px; max-height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: clamp(0.7rem, 4vw, 1.1rem); z-index: 20; box-shadow: 0 2px 5px rgba(0,0,0,0.8); color: white; border: 2px solid white; text-shadow: 0px 1px 2px rgba(0,0,0,0.5); }
         
-        /* Análisis Responsive Board */
+        /* Bottom Sheet Modales */
+        @media (max-width: 767px) { .bottom-sheet { margin-top: auto; border-bottom-left-radius: 0; border-bottom-right-radius: 0; padding-bottom: env(safe-area-inset-bottom); } }
         .analysis-board-wrapper { width: 100%; height: 100%; aspect-ratio: 1; max-height: 65vh; margin: 0 auto; }
         @media (min-width: 768px) { .analysis-board-wrapper { max-height: 75vh; } }
+        
+        /* Color Selector */
+        .color-btn { transition: all 0.2s; border: 2px solid transparent; }
+        .color-btn.selected { border-color: #10b981; transform: scale(1.05); }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col items-center py-2 md:py-6 px-2">
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col py-2 md:py-6 px-2 pb-[env(safe-area-inset-bottom)] overflow-x-hidden">
 
-    <div class="max-w-7xl w-full" id="main-container">
-        <div class="flex flex-col lg:flex-row gap-4 lg:gap-6 justify-center items-start">
+    <!-- PANTALLA 1: INICIO (Configuración) -->
+    <div id="view-home" class="view active flex-col items-center max-w-lg mx-auto w-full mt-4 md:mt-10">
+        
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-extrabold text-emerald-400 mb-2 tracking-tight">Ajedrez Pro</h1>
+            <p class="text-slate-400 text-sm">Powered by Stockfish 10</p>
+            <div id="sf-status" class="inline-block mt-2 text-xs bg-slate-800 text-slate-300 px-3 py-1 rounded-full uppercase tracking-wider shadow">Cargando Motor...</div>
+        </div>
+
+        <div class="bg-slate-800 p-6 rounded-2xl shadow-xl w-full flex flex-col gap-6 border border-slate-700">
             
-            <!-- Panel Izquierdo: Configuración -->
-            <div id="setup-panel" class="w-full lg:w-1/4 bg-slate-800 p-4 rounded-xl shadow-lg flex flex-col gap-4 order-2 lg:order-1 border-2 border-transparent transition-colors duration-300">
-                <h1 class="text-2xl font-bold text-emerald-400 border-b border-slate-700 pb-2 hidden lg:flex items-center justify-between">
-                    Ajedrez Pro
-                    <span id="sf-status" class="text-[0.6rem] bg-slate-700 text-slate-300 px-2 py-1 rounded-full uppercase tracking-wider">Cargando...</span>
-                </h1>
-                
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1 uppercase tracking-wide">Oponente (Negras)</label>
-                    <select id="bot-difficulty" class="w-full bg-slate-700 border border-slate-600 text-white text-sm rounded focus:ring-emerald-500 focus:border-emerald-500 block p-2">
-                        <option value="1">1. Mono (Aleatorio)</option>
-                        <option value="2">2. Novato (Glotón - Clásico)</option>
-                        <option value="3">3. Principiante (Clásico x2)</option>
-                        <option value="4">4. Intermedio (Clásico x3)</option>
-                        <option value="5" selected>5. Avanzado (Stockfish Lvl 1)</option>
-                        <option value="6">6. Maestro (Stockfish Lvl 3)</option>
-                        <option value="0">Jugador vs Jugador</option>
-                    </select>
+            <!-- Color Selection -->
+            <div>
+                <label class="block text-xs text-slate-400 mb-3 uppercase tracking-wider text-center font-bold">Elige tu Color</label>
+                <div class="flex justify-center gap-4">
+                    <button id="btn-color-w" class="color-btn selected bg-slate-100 text-slate-900 w-16 h-16 rounded-xl shadow-lg flex items-center justify-center text-4xl" data-color="w">♔</button>
+                    <button id="btn-color-r" class="color-btn bg-slate-700 text-slate-300 w-16 h-16 rounded-xl shadow-lg flex items-center justify-center text-3xl font-bold border border-slate-500" data-color="r">?</button>
+                    <button id="btn-color-b" class="color-btn bg-slate-900 text-slate-100 w-16 h-16 rounded-xl shadow-lg flex items-center justify-center text-4xl border border-slate-700" data-color="b">♚</button>
                 </div>
+            </div>
 
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1 uppercase tracking-wide">Material de Piezas</label>
-                    <select id="piece-style" class="w-full bg-slate-700 border border-slate-600 text-white text-sm rounded focus:ring-emerald-500 focus:border-emerald-500 block p-2">
-                        <option value="plastico" selected>♟️ Plástico (Clásico)</option>
-                        <option value="madera">🪵 Madera</option>
-                        <option value="metal">⚙️ Metal</option>
-                        <option value="vidrio">🪞 Vidrio</option>
-                    </select>
-                </div>
+            <!-- Bot Selection -->
+            <div>
+                <label class="block text-xs text-slate-400 mb-1 uppercase tracking-wide">Oponente (ELO Aproximado)</label>
+                <select id="bot-difficulty" class="w-full bg-slate-700 border border-slate-600 text-white text-base rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-3 shadow-inner">
+                    <option value="1">🟢 Principiante (~400 ELO)</option>
+                    <option value="2">🟢 Aficionado (~800 ELO)</option>
+                    <option value="3">🟡 Jugador de Club (~1200 ELO)</option>
+                    <option value="4" selected>🟡 Torneo Regional (~1600 ELO)</option>
+                    <option value="5">🟠 Candidato a Maestro (~2000 ELO)</option>
+                    <option value="6">🔴 Maestro Internacional (~2400 ELO)</option>
+                    <option value="7">🟣 Gran Maestro (+2800 ELO)</option>
+                    <option value="0">👤 Jugar contra un amigo (Local)</option>
+                </select>
+            </div>
 
-                <div>
-                    <label class="block text-xs text-slate-400 mb-1 uppercase tracking-wide">Control de Tiempo</label>
-                    <select id="time-control" class="w-full bg-slate-700 border border-slate-600 text-white text-sm rounded focus:ring-emerald-500 focus:border-emerald-500 block p-2">
-                        <option value="0" selected>Sin Límite (Inifinito)</option>
-                        <option value="1,0">Bullet (1 min + 0s)</option>
-                        <option value="3,2">Blitz (3 min + 2s)</option>
-                        <option value="5,3">Blitz (5 min + 3s)</option>
-                        <option value="10,0">Rápido (10 min + 0s)</option>
-                        <option value="30,0">Clásico (30 min + 0s)</option>
-                        <option value="custom">⚙️ Personalizado...</option>
-                    </select>
-                    <div id="custom-time-div" class="hidden grid grid-cols-2 gap-2 mt-2">
-                        <div><label class="block text-xs text-slate-400">Min</label><input type="number" id="custom-min" value="15" min="1" class="w-full bg-slate-900 border border-slate-600 rounded p-1.5 text-sm"></div>
-                        <div><label class="block text-xs text-slate-400">Seg</label><input type="number" id="custom-inc" value="10" min="0" class="w-full bg-slate-900 border border-slate-600 rounded p-1.5 text-sm"></div>
-                    </div>
+            <!-- Time Control -->
+            <div>
+                <label class="block text-xs text-slate-400 mb-1 uppercase tracking-wide">Control de Tiempo</label>
+                <select id="time-control" class="w-full bg-slate-700 border border-slate-600 text-white text-base rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-3 shadow-inner">
+                    <option value="0">Sin Límite (Infinito)</option>
+                    <option value="1,0">Bullet (1 min + 0s)</option>
+                    <option value="3,2">Blitz (3 min + 2s)</option>
+                    <option value="5,3" selected>Blitz (5 min + 3s)</option>
+                    <option value="10,0">Rápido (10 min + 0s)</option>
+                    <option value="30,0">Clásico (30 min + 0s)</option>
+                    <option value="custom">⚙️ Personalizado...</option>
+                </select>
+                <div id="custom-time-div" class="hidden grid grid-cols-2 gap-3 mt-3">
+                    <div><label class="block text-xs text-slate-400 mb-1">Minutos</label><input type="number" id="custom-min" value="15" min="1" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-base text-center"></div>
+                    <div><label class="block text-xs text-slate-400 mb-1">Adición (seg)</label><input type="number" id="custom-inc" value="10" min="0" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-base text-center"></div>
                 </div>
-                
-                <button id="btn-new-game" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded transition duration-200 mt-2 shadow-lg">
-                    Nueva Partida
+            </div>
+
+            <!-- Theme Selection -->
+            <div>
+                <label class="block text-xs text-slate-400 mb-1 uppercase tracking-wide">Material de Piezas</label>
+                <select id="piece-style" class="w-full bg-slate-700 border border-slate-600 text-white text-base rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-3 shadow-inner">
+                    <option value="plastico" selected>♟️ Plástico (Clásico)</option>
+                    <option value="madera">🪵 Madera</option>
+                    <option value="metal">⚙️ Metal</option>
+                    <option value="vidrio">🪞 Vidrio</option>
+                </select>
+            </div>
+            
+            <button id="btn-start-game" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-lg py-4 px-4 rounded-xl transition duration-200 mt-2 shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+                ¡JUGAR AHORA!
+            </button>
+        </div>
+
+        <button id="btn-show-history" class="mt-6 w-full max-w-sm bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 px-4 rounded-xl transition duration-200 shadow border border-slate-700">
+            📜 Ver Historial de Partidas
+        </button>
+    </div>
+
+    <!-- PANTALLA 2: JUEGO -->
+    <div id="view-game" class="view flex-col items-center max-w-7xl w-full mx-auto gap-4 lg:flex-row lg:items-start lg:justify-center">
+        
+        <!-- Header Móvil & Status -->
+        <div class="w-full max-w-[500px] flex justify-between items-center bg-slate-800 p-3 rounded-xl lg:hidden shadow">
+            <button class="btn-go-home text-slate-400 hover:text-white px-2 py-1 bg-slate-700 rounded text-sm font-bold">◀ Inicio</button>
+            <span id="game-status-mobile" class="text-sm font-bold text-emerald-400">Blancas</span>
+            <button id="btn-fullscreen" class="text-slate-400 hover:text-white bg-slate-700 px-2 py-1 rounded text-sm">⛶</button>
+        </div>
+
+        <!-- Área del Tablero y Relojes -->
+        <div id="play-area" class="w-full lg:w-auto flex flex-col items-center">
+            
+            <!-- Reloj Oponente (Arriba) -->
+            <div class="w-full max-w-[500px] flex justify-between items-center bg-slate-800 px-4 py-2 rounded-t-lg border-b-2 border-slate-900 clock-panel">
+                <div class="flex items-center gap-2">
+                    <span id="opp-color-indicator" class="w-3 h-3 bg-black rounded-full border border-slate-600"></span>
+                    <span id="opp-name-txt" class="font-bold text-slate-300">Oponente</span>
+                </div>
+                <div id="clock-top" class="clock bg-slate-900 text-slate-200 font-mono text-xl md:text-2xl px-3 py-1 rounded border border-slate-700 w-24 text-center tracking-wider">--:--</div>
+            </div>
+
+            <!-- Tablero -->
+            <div id="board-wrapper" class="board-wrapper style-plastico">
+                <div class="eval-bar-container" title="Evaluación Material">
+                    <div id="eval-bar" class="eval-bar-black" style="height: 50%;"></div>
+                    <div class="eval-bar-white"></div>
+                </div>
+                <div id="board" class="board-container"></div>
+            </div>
+
+            <!-- Reloj Jugador (Abajo) -->
+            <div class="w-full max-w-[500px] flex justify-between items-center bg-slate-800 px-4 py-2 rounded-b-lg border-t-2 border-slate-900 clock-panel">
+                <div class="flex items-center gap-2">
+                    <span id="player-color-indicator" class="w-3 h-3 bg-white rounded-full border border-slate-400"></span>
+                    <span class="font-bold text-white">Tú</span>
+                </div>
+                <div id="clock-bot" class="clock bg-slate-900 text-white font-mono text-xl md:text-2xl px-3 py-1 rounded border border-slate-700 w-24 text-center tracking-wider">--:--</div>
+            </div>
+        </div>
+
+        <!-- Panel Lateral Desktop & Acciones -->
+        <div class="w-full max-w-[500px] lg:w-[320px] bg-slate-800 p-4 rounded-xl shadow-lg flex flex-col h-[300px] lg:h-[480px]">
+            
+            <div class="hidden lg:flex justify-between items-center mb-3">
+                <button class="btn-go-home text-slate-400 hover:text-white px-3 py-1.5 bg-slate-700 rounded text-sm font-bold shadow transition">◀ Volver al Inicio</button>
+            </div>
+
+            <div class="flex justify-between items-center mb-2 border-b border-slate-700 pb-2">
+                <h2 class="text-sm font-semibold text-white uppercase tracking-wider" id="game-status-desktop">Partida</h2>
+                <span id="material-score" class="font-mono text-sm bg-slate-900 px-2 py-1 rounded text-emerald-400 font-bold">0.0</span>
+            </div>
+
+            <div class="flex gap-2 mb-3 mt-1">
+                <button id="btn-undo" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold py-2 px-2 rounded transition flex justify-center items-center gap-1 shadow">
+                    ↩️ Deshacer
                 </button>
-                <button id="btn-show-history" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-1.5 px-4 rounded transition duration-200 shadow border border-slate-600 text-sm">
-                    📜 Historial Local
+                <button id="btn-surrender" class="flex-1 bg-red-900 hover:bg-red-800 text-red-100 text-xs font-bold py-2 px-2 rounded transition flex justify-center items-center gap-1 shadow border border-red-700">
+                    🏳️ Rendirse
                 </button>
-
-                <div class="mt-1">
-                    <p id="game-status" class="text-center text-sm font-medium text-emerald-300 bg-slate-900 py-2 rounded border border-slate-700">Esperando inicio...</p>
-                </div>
             </div>
 
-            <!-- Tablero Central y Relojes -->
-            <div id="play-area" class="w-full lg:w-auto flex flex-col items-center order-1 lg:order-2">
-                <div class="w-full max-w-[500px] flex justify-end mb-1 clock-panel">
-                    <button id="btn-fullscreen" class="text-slate-400 hover:text-white flex items-center gap-1 text-xs bg-slate-800 px-2 py-1 rounded transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707zm4.344 0a.5.5 0 0 1 .707 0l4.096 4.096V11.5a.5.5 0 1 1 1 0v3.975a.5.5 0 0 1-.5.5H11.5a.5.5 0 0 1 0-1h2.768l-4.096-4.096a.5.5 0 0 1 0-.707zm0-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707zm-4.344 0a.5.5 0 0 1-.707 0L1.025 1.732V4.5a.5.5 0 0 1-1 0V.525a.5.5 0 0 1 .5-.5H4.5a.5.5 0 0 1 0 1H1.732l4.096 4.096a.5.5 0 0 1 0 .707z"/></svg>
-                        Pantalla Completa
-                    </button>
-                </div>
-
-                <div class="w-full max-w-[500px] flex justify-between items-center bg-slate-800 px-4 py-2 rounded-t-lg border-b-2 border-slate-900 clock-panel">
-                    <div class="flex items-center gap-2"><span class="w-3 h-3 bg-black rounded-full border border-slate-600"></span><span class="font-bold text-slate-300">Oponente</span></div>
-                    <div id="clock-b" class="clock bg-slate-900 text-slate-200 font-mono text-xl md:text-2xl px-3 py-1 rounded border border-slate-700 w-24 text-center tracking-wider">--:--</div>
-                </div>
-
-                <div id="board-wrapper" class="board-wrapper style-plastico">
-                    <div class="eval-bar-container" title="Evaluación Material">
-                        <div id="eval-bar" class="eval-bar-black" style="height: 50%;"></div>
-                        <div class="eval-bar-white"></div>
-                    </div>
-                    <div id="board" class="board-container"></div>
-                </div>
-
-                <div class="w-full max-w-[500px] flex justify-between items-center bg-slate-800 px-4 py-2 rounded-b-lg border-t-2 border-slate-900 clock-panel">
-                    <div class="flex items-center gap-2"><span class="w-3 h-3 bg-white rounded-full border border-slate-400"></span><span class="font-bold text-white">Tú (Blancas)</span></div>
-                    <div id="clock-w" class="clock bg-slate-900 text-white font-mono text-xl md:text-2xl px-3 py-1 rounded border border-slate-700 w-24 text-center tracking-wider">--:--</div>
-                </div>
+            <div class="mb-3">
+                <button id="btn-analyze" disabled class="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white text-sm font-bold py-2.5 px-3 rounded-lg flex justify-center items-center gap-2 shadow-lg transition duration-200 border border-blue-400 disabled:border-slate-700">
+                    📊 Análisis Avanzado
+                </button>
             </div>
 
-            <!-- Panel Derecho -->
-            <div class="w-full lg:w-1/4 bg-slate-800 p-4 rounded-xl shadow-lg flex flex-col h-[400px] lg:h-[480px] order-3 lg:order-3">
-                <div class="flex justify-between items-center mb-2 border-b border-slate-700 pb-2">
-                    <h2 class="text-lg font-semibold text-white">Partida</h2>
-                    <span id="material-score" class="font-mono text-sm bg-slate-900 px-2 py-1 rounded text-emerald-400">0.0</span>
-                </div>
-
-                <div class="flex gap-2 mb-3 mt-1">
-                    <button id="btn-undo" class="flex-1 bg-slate-600 hover:bg-slate-500 text-white text-xs font-bold py-2 px-2 rounded transition duration-200 flex flex-col items-center">
-                        <span>↩️</span> Deshacer
-                    </button>
-                    <button id="btn-surrender" class="flex-1 bg-red-600 hover:bg-red-500 text-white text-xs font-bold py-2 px-2 rounded transition duration-200 flex flex-col items-center">
-                        <span>🏳️</span> Rendirse
-                    </button>
-                </div>
-
-                <div class="mb-2">
-                    <button id="btn-analyze" disabled class="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white text-sm font-bold py-2 px-3 rounded flex justify-center items-center gap-2 shadow-lg transition duration-200 border border-blue-400 disabled:border-slate-600">
-                        📊 Analizar Partida
-                    </button>
-                </div>
-
-                <div id="move-history" class="flex-1 overflow-y-auto history-scroll bg-slate-900 rounded p-2 text-sm font-mono text-slate-300"></div>
-            </div>
+            <div id="move-history" class="flex-1 overflow-y-auto history-scroll bg-slate-900 rounded p-2 text-sm font-mono text-slate-300"></div>
         </div>
     </div>
 
     <!-- MODAL DE ANÁLISIS GIGANTE -->
-    <div id="analysis-modal" class="hidden fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-2 backdrop-blur-sm transition-opacity">
-        <div class="bg-slate-800 rounded-xl shadow-2xl w-full h-full max-w-7xl max-h-full flex flex-col overflow-hidden border border-slate-600">
+    <div id="analysis-modal" class="hidden fixed inset-0 bg-black/95 z-50 flex items-end md:items-center justify-center p-0 md:p-2 backdrop-blur-sm transition-opacity">
+        <div class="bottom-sheet bg-slate-800 rounded-t-2xl md:rounded-xl shadow-2xl w-full h-[95vh] md:h-full max-w-7xl max-h-full flex flex-col overflow-hidden border-t border-l border-r md:border border-slate-600">
             <div class="p-3 border-b border-slate-700 flex justify-between items-center bg-slate-900 shrink-0">
                 <h2 class="text-lg md:text-xl font-bold text-blue-400 flex items-center gap-2">🧠 Análisis Stockfish</h2>
                 <button id="close-modal" class="text-slate-400 hover:text-white text-4xl leading-none">&times;</button>
             </div>
-            <div id="analysis-content" class="p-2 overflow-hidden flex-1 bg-slate-800 relative flex flex-col">
-                <!-- Se inyecta por JS -->
-            </div>
+            <div id="analysis-content" class="p-2 overflow-hidden flex-1 bg-slate-800 relative flex flex-col"></div>
         </div>
     </div>
 
     <!-- MODAL DE HISTORIAL DE PARTIDAS -->
-    <div id="history-modal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-slate-800 rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col border border-slate-600 overflow-hidden">
+    <div id="history-modal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-end md:items-center justify-center p-0 md:p-4 backdrop-blur-sm">
+        <div class="bottom-sheet bg-slate-800 rounded-t-2xl md:rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col border-t border-l border-r md:border border-slate-600 overflow-hidden">
             <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900">
-                <h2 class="text-xl font-bold text-emerald-400 flex items-center gap-2">📜 Últimas 100 Partidas</h2>
+                <h2 class="text-xl font-bold text-emerald-400 flex items-center gap-2">📜 Historial</h2>
                 <button id="close-history-modal" class="text-slate-400 hover:text-white text-3xl leading-none">&times;</button>
             </div>
-            <div id="history-list-content" class="p-4 overflow-y-auto flex-1 bg-slate-800 text-slate-200 space-y-3 history-scroll">
-                <!-- Se inyecta por JS -->
-            </div>
+            <div id="history-list-content" class="p-4 overflow-y-auto flex-1 bg-slate-800 text-slate-200 space-y-3 history-scroll"></div>
         </div>
     </div>
 
     <script>
         // --- INICIALIZACIÓN MOTOR STOCKFISH ---
-        let sfWorker = null;
-        let sfReady = false;
-        let sfCallbacks = [];
+        let sfWorker = null; let sfReady = false; let sfCallbacks = [];
 
         async function initStockfish() {
             try {
@@ -223,7 +254,7 @@
                 sfWorker.onmessage = function(e) {
                     const msg = e.data;
                     if (msg === 'uciok') {
-                        sfReady = true; sfStatus.textContent = 'Stockfish ✓'; sfStatus.classList.replace('text-slate-300', 'text-emerald-400');
+                        sfReady = true; sfStatus.textContent = 'Stockfish Listo ✓'; sfStatus.classList.replace('text-slate-300', 'text-emerald-400');
                     }
                     if (msg.startsWith('info depth') && msg.includes('score')) {
                         const scoreMatch = msg.match(/score (cp|mate) (-?\d+)/);
@@ -243,14 +274,17 @@
                 sfWorker.postMessage('uci');
             } catch (error) {
                 console.error("Error Stockfish:", error);
-                document.getElementById('sf-status').textContent = 'Error (Básico)';
+                document.getElementById('sf-status').textContent = 'Error Motor (Offline)';
+                document.getElementById('sf-status').classList.replace('text-slate-300', 'text-red-400');
             }
         }
         
-        function getStockfishMove(fen, depth) {
+        // Petición al motor con Nivel de Habilidad (0-20)
+        function getStockfishMove(fen, depth, skillLevel = 20) {
             return new Promise(resolve => {
                 if(!sfReady) resolve(null);
                 sfCallbacks.push({type: 'move', resolve});
+                sfWorker.postMessage(`setoption name Skill Level value ${skillLevel}`);
                 sfWorker.postMessage(`position fen ${fen}`);
                 sfWorker.postMessage(`go depth ${depth}`);
             });
@@ -260,6 +294,7 @@
             return new Promise(resolve => {
                 if(!sfReady) resolve({type: 'cp', value: 0});
                 sfCallbacks.push({type: 'eval', resolve, latestScore: {type: 'cp', value: 0}});
+                sfWorker.postMessage(`setoption name Skill Level value 20`); // Siempre analiza al máximo
                 sfWorker.postMessage(`position fen ${fen}`);
                 sfWorker.postMessage(`go depth ${depth}`);
             });
@@ -269,17 +304,12 @@
 
         // --- LÓGICA PRINCIPAL ---
         let game = new Chess();
-        const boardElement = document.getElementById('board');
-        const statusElement = document.getElementById('game-status');
-        const historyElement = document.getElementById('move-history');
-        const evalBar = document.getElementById('eval-bar');
-        const materialScoreTxt = document.getElementById('material-score');
-        
         let selectedSquare = null; let lastMove = null; let isThinking = false; let gameActive = false;
         let timeControl = { enabled: false, initialSecs: 0, incrementSecs: 0 };
         let timeLeft = { w: 0, b: 0 }; let turnStartTime = 0; let timerInterval = null;
-
         let analysisData = []; let currentAnalysisIndex = -1;
+        
+        let playerColor = 'w'; // Color elegido por el humano ('w' o 'b')
 
         const pieceUrls = {
             'w-p': 'https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg', 'w-n': 'https://upload.wikimedia.org/wikipedia/commons/7/70/Chess_nlt45.svg', 'w-b': 'https://upload.wikimedia.org/wikipedia/commons/b/b1/Chess_blt45.svg', 'w-r': 'https://upload.wikimedia.org/wikipedia/commons/7/72/Chess_rlt45.svg', 'w-q': 'https://upload.wikimedia.org/wikipedia/commons/1/15/Chess_qlt45.svg', 'w-k': 'https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg',
@@ -287,39 +317,114 @@
         };
         const pieceValues = { p: 10, n: 30, b: 30, r: 50, q: 90, k: 900 };
 
-        // --- INTERFAZ BÁSICA ---
+        function vibrate(pattern) { if ('vibrate' in navigator) try { navigator.vibrate(pattern); } catch(e) {} }
+
+        // --- SISTEMA DE VISTAS ---
+        function showView(viewId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+        }
+
+        document.querySelectorAll('.btn-go-home').forEach(btn => btn.addEventListener('click', () => {
+            if(gameActive && !confirm("¿Salir de la partida en curso?")) return;
+            gameActive = false;
+            if(timerInterval) cancelAnimationFrame(timerInterval);
+            showView('view-home');
+        }));
+
+        // Selección de Color
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected', 'border-emerald-500'));
+                e.currentTarget.classList.add('selected', 'border-emerald-500');
+            });
+        });
+
+        document.getElementById('time-control').addEventListener('change', (e) => document.getElementById('custom-time-div').classList.toggle('hidden', e.target.value !== 'custom'));
+        document.getElementById('piece-style').addEventListener('change', (e) => document.getElementById('board-wrapper').className = `board-wrapper style-${e.target.value}`);
+        
         document.getElementById('btn-fullscreen').addEventListener('click', () => {
             const playArea = document.getElementById('play-area');
             if (!document.fullscreenElement) playArea.requestFullscreen?.() || playArea.webkitRequestFullscreen?.();
             else document.exitFullscreen?.();
         });
         document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement) document.getElementById('play-area').classList.remove('fullscreen-mode'); else document.getElementById('play-area').classList.add('fullscreen-mode'); });
-        document.getElementById('piece-style').addEventListener('change', (e) => document.getElementById('board-wrapper').className = `board-wrapper style-${e.target.value}`);
-        document.getElementById('time-control').addEventListener('change', (e) => document.getElementById('custom-time-div').classList.toggle('hidden', e.target.value !== 'custom'));
 
-        function createBoard() {
-            boardElement.innerHTML = ''; const columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-            for (let r = 8; r >= 1; r--) for (let c = 0; c < 8; c++) {
-                const sq = document.createElement('div');
-                sq.className = `square ${(r + c) % 2 === 0 ? 'square-light' : 'square-dark'}`;
-                sq.id = columns[c] + r; sq.addEventListener('click', () => handleSquareClick(columns[c] + r));
-                boardElement.appendChild(sq);
+        // --- INICIAR PARTIDA DESDE HOME ---
+        document.getElementById('btn-start-game').addEventListener('click', () => {
+            // Obtener Color
+            const colorSelection = document.querySelector('.color-btn.selected').dataset.color;
+            playerColor = colorSelection === 'r' ? (Math.random() > 0.5 ? 'w' : 'b') : colorSelection;
+
+            // Actualizar indicadores UI
+            document.getElementById('player-color-indicator').className = `w-3 h-3 rounded-full border ${playerColor === 'w' ? 'bg-white border-slate-400' : 'bg-black border-slate-600'}`;
+            document.getElementById('opp-color-indicator').className = `w-3 h-3 rounded-full border ${playerColor === 'w' ? 'bg-black border-slate-600' : 'bg-white border-slate-400'}`;
+            const oppSelect = document.getElementById('bot-difficulty');
+            document.getElementById('opp-name-txt').textContent = oppSelect.options[oppSelect.selectedIndex].text.split('(')[0]; // Solo el nombre, sin ELO
+
+            // Reset Juego
+            game.reset(); selectedSquare = null; lastMove = null; gameActive = true; isThinking = false;
+            document.getElementById('btn-analyze').disabled = true; document.getElementById('btn-analyze').classList.remove('animate-bounce');
+            
+            setupGameSettings(); 
+            createBoard('board'); 
+            
+            showView('view-game');
+            updateStatus();
+
+            // Si el jugador es Negras, el Bot (Blancas) mueve primero
+            if (playerColor === 'b' && parseInt(oppSelect.value) > 0) {
+                isThinking = true;
+                setTimeout(() => makeBotMove(parseInt(oppSelect.value)), 600);
             }
-            updateBoard();
+        });
+
+        // --- CREACIÓN DEL TABLERO GIRATORIO ---
+        // Helper matemático correcto para color de casilla
+        function isLightSquare(fileChar, rankNum) {
+            const fileIndex = fileChar.charCodeAt(0) - 96; // 'a'=1, 'h'=8
+            return (fileIndex + rankNum) % 2 !== 0; 
+        }
+
+        function createBoard(targetId = 'board', isAnalysis = false) {
+            const boardEl = document.getElementById(targetId);
+            boardEl.innerHTML = ''; 
+            
+            // Si el jugador es negras, dibujamos desde la fila 1 a la 8, y columnas H a A.
+            const isFlipped = (playerColor === 'b');
+            const ranks = isFlipped ? [1, 2, 3, 4, 5, 6, 7, 8] : [8, 7, 6, 5, 4, 3, 2, 1];
+            const files = isFlipped ? ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a'] : ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+
+            for (let r of ranks) {
+                for (let f of files) {
+                    const sq = document.createElement('div');
+                    sq.className = `square ${isLightSquare(f, r) ? 'square-light' : 'square-dark'}`;
+                    sq.id = (isAnalysis ? 'ana-' : '') + f + r; 
+                    if (!isAnalysis) sq.addEventListener('click', () => handleSquareClick(f + r));
+                    boardEl.appendChild(sq);
+                }
+            }
+            if(!isAnalysis) updateBoard();
         }
 
         function updateBoard() {
-            const board = game.board(); const columns = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
             document.querySelectorAll('#board .square').forEach(sq => { sq.innerHTML = ''; sq.classList.remove('highlight', 'valid-move', 'last-move'); });
             if (lastMove) { document.getElementById(lastMove.from)?.classList.add('last-move'); document.getElementById(lastMove.to)?.classList.add('last-move'); }
-            for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
-                const piece = board[r][c];
-                if (piece) {
-                    const pDiv = document.createElement('div'); pDiv.className = 'piece';
-                    pDiv.style.backgroundImage = `url('${pieceUrls[`${piece.color}-${piece.type}`]}')`;
-                    document.getElementById(columns[c] + (8 - r)).appendChild(pDiv);
+            
+            const boardMap = game.board(); // matriz 8x8. [0][0] es a8.
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const piece = boardMap[r][c];
+                    if (piece) {
+                        const file = String.fromCharCode(97 + c);
+                        const rank = 8 - r;
+                        const pDiv = document.createElement('div'); pDiv.className = 'piece';
+                        pDiv.style.backgroundImage = `url('${pieceUrls[`${piece.color}-${piece.type}`]}')`;
+                        document.getElementById(file + rank)?.appendChild(pDiv);
+                    }
                 }
             }
+
             if (selectedSquare) {
                 document.getElementById(selectedSquare).classList.add('highlight');
                 game.moves({ square: selectedSquare, verbose: true }).forEach(m => document.getElementById(m.to).classList.add('valid-move'));
@@ -327,24 +432,32 @@
             updateStatus(); renderHistory(); updateEvaluation();
         }
 
+        // --- MOVIMIENTOS ---
         async function handleSquareClick(squareId) {
             if (game.game_over() || isThinking || !gameActive) return;
             const botDiff = parseInt(document.getElementById('bot-difficulty').value);
-            if (botDiff > 0 && game.turn() === 'b') return;
+            
+            // Bloquear clics si es el turno del bot
+            const isBotTurn = (botDiff > 0 && game.turn() !== playerColor);
+            if (isBotTurn) return;
 
             if (selectedSquare) {
                 const moveObj = game.moves({ verbose: true }).find(m => m.from === selectedSquare && m.to === squareId);
                 if (moveObj) {
                     executeMove(moveObj);
                     if (botDiff > 0 && !game.game_over()) {
-                        isThinking = true; statusElement.innerHTML = `<span class="text-slate-400">Bot pensando...</span>`;
+                        isThinking = true; setStatusText("Bot pensando...", false);
                         setTimeout(() => makeBotMove(botDiff), 50);
                     }
                 } else {
-                    const piece = game.get(squareId); selectedSquare = (piece && piece.color === game.turn()) ? squareId : null; updateBoard();
+                    const piece = game.get(squareId); 
+                    selectedSquare = (piece && piece.color === game.turn()) ? squareId : null; 
+                    if (selectedSquare) vibrate(10);
+                    updateBoard();
                 }
             } else {
-                const piece = game.get(squareId); if (piece && piece.color === game.turn()) { selectedSquare = squareId; updateBoard(); }
+                const piece = game.get(squareId); 
+                if (piece && piece.color === game.turn()) { selectedSquare = squareId; vibrate(10); updateBoard(); }
             }
         }
 
@@ -352,28 +465,49 @@
             const isFirstMove = game.history().length === 0;
             if (timeControl.enabled && !isFirstMove) timeLeft[game.turn()] += (timeControl.incrementSecs * 1000) - (performance.now() - turnStartTime);
             lastMove = game.move({ from: moveObj.from, to: moveObj.to, promotion: 'q' }); selectedSquare = null;
+            
+            if (moveObj.captured) vibrate([20, 40, 20]); else vibrate(15);
+            
             if (timeControl.enabled) { if (isFirstMove) startTimer(); else turnStartTime = performance.now(); updateClockUI(); }
             updateBoard();
         }
 
+        // --- SISTEMA DE BOTS (ELO 400 - 2800) ---
         async function makeBotMove(level) {
             if(!gameActive) return; let move = null;
-            if (level === 1) { const mvs = game.moves({ verbose: true }); move = mvs[Math.floor(Math.random() * mvs.length)]; }
-            else if (level <= 4 || !sfReady) { move = getGreedyMove(); } 
-            else if (level >= 5 && sfReady) {
-                const bestSf = await getStockfishMove(game.fen(), level === 5 ? 3 : 10);
+            
+            if (level === 1) { // ~400 ELO (Aleatorio)
+                const mvs = game.moves({ verbose: true }); move = mvs[Math.floor(Math.random() * mvs.length)]; 
+            }
+            else if (level === 2) { // ~800 ELO (Captura todo)
+                move = getGreedyMove(); 
+            } 
+            else if (level >= 3 && sfReady) {
+                // Stockfish con niveles matemáticos
+                let depth = 1, skill = 0;
+                if (level === 3) { depth = 1; skill = 0; }        // ~1200 ELO
+                else if (level === 4) { depth = 3; skill = 5; }   // ~1600 ELO
+                else if (level === 5) { depth = 5; skill = 10; }  // ~2000 ELO
+                else if (level === 6) { depth = 10; skill = 15; } // ~2400 ELO
+                else if (level === 7) { depth = 15; skill = 20; } // ~2800 ELO
+
+                const bestSf = await getStockfishMove(game.fen(), depth, skill);
                 if (bestSf) move = { from: bestSf.substring(0,2), to: bestSf.substring(2,4), promotion: bestSf.length > 4 ? bestSf[4] : 'q' };
                 else move = game.moves({verbose:true})[0];
+            } else {
+                move = getGreedyMove(); // Fallback si no carga SF
             }
+
             if (move && !game.game_over()) executeMove(move);
             isThinking = false;
         }
 
         function getGreedyMove() { const mvs = game.moves({verbose:true}); let best = mvs[0], maxV = -1; mvs.forEach(m => { if(m.captured && pieceValues[m.captured]>maxV){maxV=pieceValues[m.captured]; best=m;} }); return best; }
 
+        // --- RELOJ ---
         function setupGameSettings() {
             const tcVal = document.getElementById('time-control').value;
-            if (tcVal === "0") { timeControl.enabled = false; document.getElementById('clock-w').textContent = "∞"; document.getElementById('clock-b').textContent = "∞"; } 
+            if (tcVal === "0") { timeControl.enabled = false; document.getElementById('clock-top').textContent = "∞"; document.getElementById('clock-bot').textContent = "∞"; } 
             else {
                 timeControl.enabled = true;
                 if (tcVal === "custom") { timeControl.initialSecs = parseInt(document.getElementById('custom-min').value) * 60; timeControl.incrementSecs = parseInt(document.getElementById('custom-inc').value); } 
@@ -397,7 +531,11 @@
             if (!timeControl.enabled) return;
             let dw = timeLeft.w; let db = timeLeft.b;
             if (gameActive && actDisp !== null) { if (game.turn() === 'w') dw = actDisp; else db = actDisp; }
-            const cw = document.getElementById('clock-w'); const cb = document.getElementById('clock-b');
+            
+            // Asignar el reloj top al oponente y el bot al jugador
+            const cw = playerColor === 'w' ? document.getElementById('clock-bot') : document.getElementById('clock-top');
+            const cb = playerColor === 'b' ? document.getElementById('clock-bot') : document.getElementById('clock-top');
+            
             cw.textContent = formatTime(dw); cb.textContent = formatTime(db);
             cw.classList.toggle('low-time', dw < 10000 && dw > 0); cb.classList.toggle('low-time', db < 10000 && db > 0);
         }
@@ -405,7 +543,7 @@
         function evaluateMaterialOnly(board) {
             let score = 0;
             for(let r=0; r<8; r++) for(let c=0; c<8; c++) if(board[r][c]) score += (board[r][c].color==='w'?1:-1) * pieceValues[board[r][c].type];
-            return score;
+            return playerColor === 'w' ? score : -score; // Invertir barra si juegas con negras
         }
 
         function updateEvaluation() {
@@ -420,9 +558,33 @@
             historyElement.innerHTML = html; historyElement.scrollTop = historyElement.scrollHeight;
         }
 
+        function setStatusText(html, isPulse = false) {
+            document.getElementById('game-status-mobile').innerHTML = html;
+            document.getElementById('game-status-desktop').innerHTML = html;
+        }
+
+        function endGame(statusMessage) {
+            gameActive = false; if(timerInterval) { cancelAnimationFrame(timerInterval); timerInterval = null; }
+            setStatusText(statusMessage); 
+            document.getElementById('btn-analyze').disabled = false; document.getElementById('btn-analyze').classList.add('animate-bounce', 'ring-2', 'ring-emerald-400');
+            vibrate([50, 50, 100]); 
+            saveGameToHistory(statusMessage);
+        }
+
+        function updateStatus() {
+            if (!gameActive) return;
+            if (game.in_checkmate()) endGame(`¡Jaque Mate! Ganan <span class="font-bold">${game.turn() === 'w' ? 'Negras' : 'Blancas'}</span>`);
+            else if (game.in_draw()) endGame('Empate');
+            else {
+                let msg = `Turno: <span class="font-bold">${game.turn() === 'w' ? 'Blancas' : 'Negras'}</span>`;
+                if (game.in_check()) msg += ' <span class="text-red-500 font-bold ml-1">(¡Jaque!)</span>';
+                setStatusText(msg);
+            }
+        }
+
         // --- SISTEMA DE HISTORIAL (100 Partidas) ---
         function saveGameToHistory(statusMessage) {
-            if (game.history().length < 2) return; // No guardar si movieron menos de 2 veces
+            if (game.history().length < 2) return; 
             let h = JSON.parse(localStorage.getItem('ajedrez_pro_history') || '[]');
             const botSel = document.getElementById('bot-difficulty');
             const oppName = botSel.options[botSel.selectedIndex].text;
@@ -430,8 +592,9 @@
             const gameRecord = {
                 date: new Date().toLocaleString(),
                 moves: game.history(),
-                status: statusMessage.replace(/<[^>]*>?/gm, ''), // Quitar tags HTML
-                opponent: oppName
+                status: statusMessage.replace(/<[^>]*>?/gm, ''),
+                opponent: oppName,
+                playerColor: playerColor
             };
             h.unshift(gameRecord);
             if (h.length > 100) h = h.slice(0, 100);
@@ -441,21 +604,15 @@
         document.getElementById('btn-show-history').addEventListener('click', () => {
             const h = JSON.parse(localStorage.getItem('ajedrez_pro_history') || '[]');
             const listContent = document.getElementById('history-list-content');
-            if (h.length === 0) {
-                listContent.innerHTML = `<p class="text-center text-slate-400 mt-10">Aún no hay partidas guardadas.</p>`;
-            } else {
-                listContent.innerHTML = h.map((g, index) => `
+            if (h.length === 0) listContent.innerHTML = `<p class="text-center text-slate-400 mt-10">Aún no hay partidas guardadas.</p>`;
+            else listContent.innerHTML = h.map((g, index) => `
                     <div class="bg-slate-700/50 p-3 rounded-lg border border-slate-600 flex justify-between items-center">
                         <div>
                             <div class="text-sm font-bold text-emerald-400">${g.status}</div>
-                            <div class="text-xs text-slate-400 mt-1">🆚 ${g.opponent} • 📅 ${g.date} • ♟️ ${g.moves.length} jugadas</div>
+                            <div class="text-xs text-slate-400 mt-1">🆚 ${g.opponent} • 📅 ${g.date}</div>
                         </div>
-                        <button onclick="loadHistoryGame(${index})" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded shadow transition">
-                            Re-Analizar
-                        </button>
-                    </div>
-                `).join('');
-            }
+                        <button onclick="loadHistoryGame(${index})" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-2 rounded shadow transition">Analizar</button>
+                    </div>`).join('');
             document.getElementById('history-modal').classList.remove('hidden');
         });
 
@@ -466,38 +623,17 @@
             const record = h[index];
             if(record) {
                 document.getElementById('history-modal').classList.add('hidden');
+                playerColor = record.playerColor || 'w'; // Cargar color original si existe
                 runPostGameAnalysis(record.moves);
             }
         };
 
-        // --- GESTIÓN FIN DE PARTIDA ---
-        function endGame(statusMessage) {
-            gameActive = false; if(timerInterval) { cancelAnimationFrame(timerInterval); timerInterval = null; }
-            statusElement.innerHTML = statusMessage; statusElement.classList.replace('bg-slate-900', 'bg-blue-900/50'); statusElement.classList.add('animate-pulse');
-            document.getElementById('btn-analyze').disabled = false; document.getElementById('btn-analyze').classList.add('animate-bounce');
-            document.getElementById('setup-panel').classList.replace('border-transparent', 'border-emerald-500');
-            setTimeout(() => document.getElementById('setup-panel').classList.replace('border-emerald-500', 'border-transparent'), 3000);
-            
-            saveGameToHistory(statusMessage);
-        }
-
-        function updateStatus() {
-            if (!gameActive) return;
-            if (game.in_checkmate()) endGame(`¡Jaque Mate! Ganan las <span class="font-bold">${game.turn() === 'w' ? 'Negras' : 'Blancas'}</span>.`);
-            else if (game.in_draw()) endGame('Empate por Rey Ahogado o Regla.');
-            else {
-                let msg = `Turno de las <span class="font-bold">${game.turn() === 'w' ? 'Blancas' : 'Negras'}</span>`;
-                if (game.in_check()) msg += ' <span class="text-red-500 font-bold ml-1">(¡Jaque!)</span>';
-                statusElement.innerHTML = msg;
-            }
-        }
-
         // --- ANÁLISIS GIGANTE ESTRICTO ---
         document.getElementById('btn-analyze').addEventListener('click', () => {
-            const h = game.history({ verbose: true }).map(m => m.san); // Pasamos array de SAN strings
-            if(h.length === 0) { alert("No hay jugadas."); return; }
-            if(!sfReady) { alert("Stockfish no está disponible."); return; }
-            document.getElementById('btn-analyze').classList.remove('animate-bounce');
+            const h = game.history({ verbose: true }).map(m => m.san); 
+            if(h.length === 0) return;
+            if(!sfReady) { alert("Stockfish no disponible."); return; }
+            document.getElementById('btn-analyze').classList.remove('animate-bounce', 'ring-2', 'ring-emerald-400');
             runPostGameAnalysis(h);
         });
         document.getElementById('close-modal').addEventListener('click', () => document.getElementById('analysis-modal').classList.add('hidden'));
@@ -522,7 +658,7 @@
             for (let i = 0; i < movesSanArray.length; i++) {
                 const moveStr = movesSanArray[i];
                 const preEvalCp = scoreToCp(await getStockfishEval(tempGame.fen(), 6));
-                const preMat = evaluateMaterialOnly(tempGame.board()); // Material puro
+                const preMat = evaluateMaterialOnly(tempGame.board()); 
                 
                 const moveObj = tempGame.move(moveStr);
                 const currentFen = tempGame.fen();
@@ -530,19 +666,14 @@
                 const postEvalCp = scoreToCp(await getStockfishEval(currentFen, 6));
                 const postMat = evaluateMaterialOnly(tempGame.board());
 
-                // Delta de Eval y Delta de Material puro
                 let sfDelta = moveObj.color === 'w' ? (postEvalCp - preEvalCp) : (preEvalCp - postEvalCp);
                 let matDelta = moveObj.color === 'w' ? (postMat - preMat) : (preMat - postMat);
 
                 let label = 'Buena'; let cssColor = 'text-slate-400'; let badgeText = ''; let badgeClass = '';
 
-                // Lógica Estricta de Brillantes (Sacrificio real o jugada ultra profunda)
                 let isBrilliant = false;
-                // Sacrificó pieza menor o 3 peones pero la posición se mantuvo igual o mejoró
                 if (matDelta <= -30 && sfDelta > -50) isBrilliant = true;
-                // Sacrificó un peón pero ganó enorme ventaja estratégica
                 if (matDelta <= -10 && sfDelta > 150) isBrilliant = true;
-                // Jugada celestial (+3 peones de ventaja súbita)
                 if (sfDelta >= 300) isBrilliant = true;
 
                 if (isBrilliant) { label = 'Brillante'; badgeText = '!!'; badgeClass = 'bg-cyan-500'; cssColor = 'text-cyan-400'; stats.brilliant++; }
@@ -573,23 +704,18 @@
                         <div class="flex items-center gap-2">
                             <span class="font-mono text-slate-500 text-xs w-8">${Math.floor(i/2) + 1}.${data.color === 'w' ? 'B' : 'N'}</span>
                             <span class="font-bold text-sm text-white">${data.san}</span>
-                            ${data.badgeText ? `<span class="${data.badgeClass} text-white px-1.5 rounded text-[0.6rem] font-bold">${data.badgeText}</span>` : ''}
+                            ${data.badgeText ? `<span class="${data.badgeClass} text-white px-1.5 rounded text-[0.6rem] font-bold shadow-sm">${data.badgeText}</span>` : ''}
                         </div>
                         <div class="${data.cssColor} font-semibold text-[0.65rem] tracking-wide uppercase">${data.label}</div>
                     </div>`;
             }
 
-            // Layout Adaptativo: Tablero GIGANTE, Lista scrolleable pequeña
             content.innerHTML = `
                 <div class="flex flex-col lg:flex-row gap-4 h-full w-full max-h-full">
-                    
-                    <!-- Tablero Interactivo (Ocupa la mayoría) -->
                     <div class="flex-1 flex flex-col items-center justify-start bg-slate-900 rounded-lg p-2 shadow-inner overflow-hidden">
                         <div class="analysis-board-wrapper style-${currentStyle} relative mb-2">
                             <div id="analysis-board" class="board-container w-full h-full"></div>
                         </div>
-                        
-                        <!-- Controles -->
                         <div class="flex gap-1 md:gap-3 w-full max-w-sm bg-slate-800 p-2 rounded shadow border border-slate-700 justify-center">
                             <button onclick="goToAnalysisMove(-1)" class="p-2 bg-slate-700 rounded text-white text-xs md:text-sm shadow">⏮️ Inicio</button>
                             <button onclick="goToAnalysisMove(currentAnalysisIndex - 1)" class="p-2 bg-slate-700 rounded text-white text-xs md:text-sm shadow">◀️ Atrás</button>
@@ -597,8 +723,6 @@
                             <button onclick="goToAnalysisMove(analysisData.length - 1)" class="p-2 bg-slate-700 rounded text-white text-xs md:text-sm shadow">Fin ⏭️</button>
                         </div>
                     </div>
-
-                    <!-- Panel Lateral -->
                     <div class="w-full lg:w-80 flex flex-col h-48 lg:h-full bg-slate-900 rounded-lg border border-slate-700 shrink-0 overflow-hidden">
                         <div class="grid grid-cols-4 gap-0 p-1 bg-slate-800 border-b border-slate-700">
                             <div class="text-center"><div class="text-lg text-cyan-400 font-bold">!! ${stats.brilliant}</div></div>
@@ -606,12 +730,11 @@
                             <div class="text-center"><div class="text-lg text-orange-500 font-bold">? ${stats.mistake}</div></div>
                             <div class="text-center"><div class="text-lg text-red-500 font-bold">?? ${stats.blunder}</div></div>
                         </div>
-                        <div id="ana-list-container" class="flex-1 overflow-y-auto p-2 space-y-1 history-scroll">
-                            ${listHtml}
-                        </div>
+                        <div id="ana-list-container" class="flex-1 overflow-y-auto p-2 space-y-1 history-scroll">${listHtml}</div>
                     </div>
                 </div>
             `;
+            createBoard('analysis-board', true); // Crear cuadricula vacia alineada al jugador
             goToAnalysisMove(-1);
         }
 
@@ -623,26 +746,30 @@
             if (index >= 0) { moveInfo = analysisData[index]; fen = moveInfo.fen; }
 
             const boardEl = document.getElementById('analysis-board'); if (!boardEl) return;
-            boardEl.innerHTML = '';
-            let tempGame = new Chess(fen); const board = tempGame.board(); const cols = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+            // Limpiar tablero análisis
+            document.querySelectorAll('#analysis-board .square').forEach(sq => { sq.innerHTML = ''; sq.classList.remove('last-move'); });
+            
+            let tempGame = new Chess(fen); const boardMap = tempGame.board();
 
             for (let r = 0; r < 8; r++) {
                 for (let c = 0; c < 8; c++) {
-                    const squareId = cols[c] + (8 - r);
-                    const sqDiv = document.createElement('div');
-                    sqDiv.className = `square ${((8-r) + c) % 2 !== 0 ? 'square-dark' : 'square-light'}`;
-                    if (moveInfo && (moveInfo.moveObj.from === squareId || moveInfo.moveObj.to === squareId)) sqDiv.classList.add('last-move');
+                    const piece = boardMap[r][c];
+                    const file = String.fromCharCode(97 + c); const rank = 8 - r;
+                    const sqId = 'ana-' + file + rank;
+                    
+                    if (moveInfo && (moveInfo.moveObj.from === file+rank || moveInfo.moveObj.to === file+rank)) {
+                        document.getElementById(sqId)?.classList.add('last-move');
+                    }
 
-                    if (board[r][c]) {
+                    if (piece) {
                         const pDiv = document.createElement('div'); pDiv.className = 'piece';
-                        pDiv.style.backgroundImage = `url('${pieceUrls[`${board[r][c].color}-${board[r][c].type}`]}')`;
-                        sqDiv.appendChild(pDiv);
+                        pDiv.style.backgroundImage = `url('${pieceUrls[`${piece.color}-${piece.type}`]}')`;
+                        document.getElementById(sqId)?.appendChild(pDiv);
                     }
-                    if (moveInfo && moveInfo.moveObj.to === squareId && moveInfo.badgeText !== '') {
+                    if (moveInfo && moveInfo.moveObj.to === file+rank && moveInfo.badgeText !== '') {
                         const badge = document.createElement('div'); badge.className = `badge-eval ${moveInfo.badgeClass}`;
-                        badge.textContent = moveInfo.badgeText; sqDiv.appendChild(badge);
+                        badge.textContent = moveInfo.badgeText; document.getElementById(sqId)?.appendChild(badge);
                     }
-                    boardEl.appendChild(sqDiv);
                 }
             }
 
@@ -653,29 +780,19 @@
             }
         };
 
-        // --- CONTROLES GENERALES ---
-        document.getElementById('btn-new-game').addEventListener('click', () => {
-            if(gameActive && !confirm("¿Abandonar partida actual?")) return;
-            game.reset(); selectedSquare = null; lastMove = null; gameActive = true; isThinking = false;
-            document.getElementById('btn-analyze').disabled = true; statusElement.classList.replace('bg-blue-900/50', 'bg-slate-900'); statusElement.classList.remove('animate-pulse');
-            setupGameSettings(); updateBoard(); statusElement.innerHTML = `Turno de las <span class="font-bold">Blancas</span>`;
-        });
+        // Acciones Juego
         document.getElementById('btn-undo').addEventListener('click', () => {
             if (!gameActive || game.history().length === 0 || isThinking) return;
-            game.undo(); if (parseInt(document.getElementById('bot-difficulty').value) > 0 && game.turn() === 'b' && game.history().length > 0) game.undo();
+            game.undo(); if (parseInt(document.getElementById('bot-difficulty').value) > 0 && game.turn() !== playerColor && game.history().length > 0) game.undo();
             selectedSquare = null; lastMove = null; if (timeControl.enabled) turnStartTime = performance.now(); updateBoard();
         });
         document.getElementById('btn-surrender').addEventListener('click', () => {
             if (!gameActive || isThinking) return;
-            if (confirm("¿Estás seguro de que quieres rendirte?")) endGame(`¡Te has rendido! Ganan las <span class="font-bold">${game.turn() === 'w' ? 'Negras' : 'Blancas'}</span>.`);
+            if (confirm("¿Rendirse?")) endGame(`¡Te has rendido! Ganan <span class="font-bold">${game.turn() === 'w' ? 'Negras' : 'Blancas'}</span>`);
         });
 
-        // Configuración de PWA Offline (Ahora funcionará gracias al sw.js limpio)
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').then(() => console.log('PWA Lista')).catch(e => console.log('Error PWA', e)));
-        }
-
-        createBoard(); setupGameSettings();
+        // Setup inicial app
+        if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
     </script>
 </body>
 </html>
