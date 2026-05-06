@@ -1,6 +1,6 @@
-const CACHE_NAME = 'ajedrez-pro-v1';
+const CACHE_NAME = 'ajedrez-pro-v2';
 
-// Todos los recursos (librerías e imágenes) que necesitamos para jugar sin internet
+// Todos los recursos limpios que necesitamos para jugar sin internet
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -8,8 +8,6 @@ const ASSETS_TO_CACHE = [
     '[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)',
     '[https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js](https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js)',
     '[https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js](https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js)',
-    
-    // Todas las piezas de ajedrez (SVG)
     '[https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg](https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg)',
     '[https://upload.wikimedia.org/wikipedia/commons/7/70/Chess_nlt45.svg](https://upload.wikimedia.org/wikipedia/commons/7/70/Chess_nlt45.svg)',
     '[https://upload.wikimedia.org/wikipedia/commons/b/b1/Chess_blt45.svg](https://upload.wikimedia.org/wikipedia/commons/b/b1/Chess_blt45.svg)',
@@ -24,7 +22,6 @@ const ASSETS_TO_CACHE = [
     '[https://upload.wikimedia.org/wikipedia/commons/f/f0/Chess_kdt45.svg](https://upload.wikimedia.org/wikipedia/commons/f/f0/Chess_kdt45.svg)'
 ];
 
-// Evento de Instalación: Guarda todo en caché la primera vez que se visita
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -36,7 +33,6 @@ self.addEventListener('install', (event) => {
     );
 });
 
-// Evento de Activación: Limpia cachés viejos si actualizas la versión
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => {
@@ -52,17 +48,11 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// Evento Fetch: Intercepta las peticiones y devuelve la versión de la memoria caché
 self.addEventListener('fetch', (event) => {
     event.respondWith(
         caches.match(event.request)
         .then((response) => {
-            // Si está en la caché, se lo damos directo (sin internet)
-            if (response) {
-                return response;
-            }
-            
-            // Si no está, lo pedimos a internet y lo guardamos dinámicamente
+            if (response) return response;
             return fetch(event.request).then(fetchRes => {
                 return caches.open(CACHE_NAME).then(cache => {
                     cache.put(event.request.url, fetchRes.clone());
