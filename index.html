@@ -19,8 +19,10 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* Tablero Responsive */
-        .board-wrapper { position: relative; width: 100%; max-width: 500px; margin: 0 auto; display: flex; flex-direction: row; background-color: #1e293b; padding: 4px; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); }
-        .board-container { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: 100%; aspect-ratio: 1; border: 2px solid #334155; border-radius: 0.25rem; overflow: hidden; }
+        .board-wrapper { position: relative; width: 100%; max-width: 500px; margin: 0 auto; display: flex; flex-direction: row; background-color: #1e293b; padding: 4px; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); transition: max-width 0.3s ease-in-out; }
+        @media (min-width: 1024px) { .board-wrapper { max-width: 600px; } }
+        @media (min-width: 1280px) { .board-wrapper { max-width: 700px; } }
+        .board-container { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: 100%; aspect-ratio: 1; border: 2px solid #334155; border-radius: 0.25rem; overflow: hidden; position: relative; }
         
         .fullscreen-mode { position: fixed !important; top: 0; left: 0; right: 0; bottom: 0; z-index: 40; background-color: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; }
         .fullscreen-mode .board-wrapper { max-width: 90vmin; max-height: 90vmin; }
@@ -42,6 +44,8 @@
         .highlight { background-color: rgba(255, 255, 50, 0.5); }
         .last-move { background-color: rgba(255, 255, 0, 0.4); }
         .valid-move::after { content: ''; position: absolute; width: 30%; height: 30%; background-color: rgba(0, 0, 0, 0.15); border-radius: 50%; z-index: 5; }
+        .premove-highlight { background-color: rgba(244, 63, 94, 0.5) !important; }
+        .rc-highlight { background-color: rgba(235, 97, 80, 0.8) !important; }
 
         /* Reloj y UI */
         .clock { font-variant-numeric: tabular-nums; }
@@ -93,7 +97,7 @@
 
             <!-- Bot Selection -->
             <div>
-                <label class="block text-xs text-slate-400 mb-1 uppercase tracking-wide">Oponente (ELO Aproximado)</label>
+                <label for="bot-difficulty" class="block text-xs text-slate-400 mb-1 uppercase tracking-wide">Oponente (ELO Aproximado)</label>
                 <select id="bot-difficulty" class="w-full bg-slate-700 border border-slate-600 text-white text-base rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-3 shadow-inner">
                     <option value="1">🟢 Principiante (~400 ELO)</option>
                     <option value="2">🟢 Aficionado (~800 ELO)</option>
@@ -108,7 +112,7 @@
 
             <!-- Time Control -->
             <div>
-                <label class="block text-xs text-slate-400 mb-1 uppercase tracking-wide">Control de Tiempo</label>
+                <label for="time-control" class="block text-xs text-slate-400 mb-1 uppercase tracking-wide">Control de Tiempo</label>
                 <select id="time-control" class="w-full bg-slate-700 border border-slate-600 text-white text-base rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-3 shadow-inner">
                     <option value="0">Sin Límite (Infinito)</option>
                     <option value="1,0">Bullet (1 min + 0s)</option>
@@ -119,14 +123,14 @@
                     <option value="custom">⚙️ Personalizado...</option>
                 </select>
                 <div id="custom-time-div" class="hidden grid grid-cols-2 gap-3 mt-3">
-                    <div><label class="block text-xs text-slate-400 mb-1">Minutos</label><input type="number" id="custom-min" value="15" min="1" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-base text-center"></div>
-                    <div><label class="block text-xs text-slate-400 mb-1">Adición (seg)</label><input type="number" id="custom-inc" value="10" min="0" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-base text-center"></div>
+                    <div><label for="custom-min" class="block text-xs text-slate-400 mb-1">Minutos</label><input type="number" id="custom-min" value="15" min="1" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-base text-center"></div>
+                    <div><label for="custom-inc" class="block text-xs text-slate-400 mb-1">Adición (seg)</label><input type="number" id="custom-inc" value="10" min="0" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-base text-center"></div>
                 </div>
             </div>
 
             <!-- Theme Selection -->
             <div>
-                <label class="block text-xs text-slate-400 mb-1 uppercase tracking-wide">Material de Piezas</label>
+                <label for="piece-style" class="block text-xs text-slate-400 mb-1 uppercase tracking-wide">Material de Piezas</label>
                 <select id="piece-style" class="w-full bg-slate-700 border border-slate-600 text-white text-base rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-3 shadow-inner">
                     <option value="plastico" selected>♟️ Plástico (Clásico)</option>
                     <option value="madera">🪵 Madera</option>
@@ -156,10 +160,10 @@
         </div>
 
         <!-- Área del Tablero y Relojes -->
-        <div id="play-area" class="w-full lg:w-auto flex flex-col items-center">
+        <div id="play-area" class="w-full lg:w-auto flex flex-col items-center flex-1">
             
             <!-- Reloj Oponente (Arriba) -->
-            <div class="w-full max-w-[500px] flex justify-between items-center bg-slate-800 px-4 py-2 rounded-t-lg border-b-2 border-slate-900 clock-panel">
+            <div class="w-full max-w-[500px] lg:max-w-[600px] xl:max-w-[700px] flex justify-between items-center bg-slate-800 px-4 py-2 rounded-t-lg border-b-2 border-slate-900 clock-panel transition-all duration-300">
                 <div class="flex items-center gap-2">
                     <span id="opp-color-indicator" class="w-3 h-3 bg-black rounded-full border border-slate-600"></span>
                     <span id="opp-name-txt" class="font-bold text-slate-300">Oponente</span>
@@ -177,7 +181,7 @@
             </div>
 
             <!-- Reloj Jugador (Abajo) -->
-            <div class="w-full max-w-[500px] flex justify-between items-center bg-slate-800 px-4 py-2 rounded-b-lg border-t-2 border-slate-900 clock-panel">
+            <div class="w-full max-w-[500px] lg:max-w-[600px] xl:max-w-[700px] flex justify-between items-center bg-slate-800 px-4 py-2 rounded-b-lg border-t-2 border-slate-900 clock-panel transition-all duration-300">
                 <div class="flex items-center gap-2">
                     <span id="player-color-indicator" class="w-3 h-3 bg-white rounded-full border border-slate-400"></span>
                     <span class="font-bold text-white">Tú</span>
@@ -187,7 +191,7 @@
         </div>
 
         <!-- Panel Lateral Desktop & Acciones -->
-        <div class="w-full max-w-[500px] lg:w-[320px] bg-slate-800 p-4 rounded-xl shadow-lg flex flex-col h-[300px] lg:h-[480px]">
+        <div class="w-full max-w-[500px] lg:w-[350px] bg-slate-800 p-4 rounded-xl shadow-lg flex flex-col h-[300px] lg:h-auto lg:min-h-[500px] xl:min-h-[600px] transition-all duration-300">
             
             <div class="hidden lg:flex justify-between items-center mb-3">
                 <button class="btn-go-home text-slate-400 hover:text-white px-3 py-1.5 bg-slate-700 rounded text-sm font-bold shadow transition">◀ Volver al Inicio</button>
@@ -309,6 +313,7 @@
         let timeLeft = { w: 0, b: 0 }; let turnStartTime = 0; let timerInterval = null;
         let analysisData = []; let currentAnalysisIndex = -1;
         
+        let premove = null; let rightClickHighlights = new Set(); let arrows = []; let rightDragStart = null;
         let playerColor = 'w'; // Color elegido por el humano ('w' o 'b')
 
         const pieceUrls = {
@@ -390,6 +395,19 @@
             const boardEl = document.getElementById(targetId);
             boardEl.innerHTML = ''; 
             
+            if (!isAnalysis) {
+                const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                svg.setAttribute('class', 'absolute top-0 left-0 w-full h-full pointer-events-none z-20');
+                svg.innerHTML = `
+                    <defs>
+                        <marker id="arrowhead" markerWidth="4" markerHeight="4" refX="2.5" refY="2" orient="auto">
+                            <polygon points="0 0, 4 2, 0 4" fill="rgba(235, 97, 80, 0.8)"/>
+                        </marker>
+                    </defs>
+                    <g id="arrows-group"></g>`;
+                boardEl.appendChild(svg);
+            }
+            
             // Si el jugador es negras, dibujamos desde la fila 1 a la 8, y columnas H a A.
             const isFlipped = (playerColor === 'b');
             const ranks = isFlipped ? [1, 2, 3, 4, 5, 6, 7, 8] : [8, 7, 6, 5, 4, 3, 2, 1];
@@ -408,8 +426,10 @@
         }
 
         function updateBoard() {
-            document.querySelectorAll('#board .square').forEach(sq => { sq.innerHTML = ''; sq.classList.remove('highlight', 'valid-move', 'last-move'); });
+            document.querySelectorAll('#board .square').forEach(sq => { sq.innerHTML = ''; sq.classList.remove('highlight', 'valid-move', 'last-move', 'premove-highlight'); });
             if (lastMove) { document.getElementById(lastMove.from)?.classList.add('last-move'); document.getElementById(lastMove.to)?.classList.add('last-move'); }
+            
+            if (premove) { document.getElementById(premove.from)?.classList.add('premove-highlight'); document.getElementById(premove.to)?.classList.add('premove-highlight'); }
             
             const boardMap = game.board(); // matriz 8x8. [0][0] es a8.
             for (let r = 0; r < 8; r++) {
@@ -429,7 +449,7 @@
                 document.getElementById(selectedSquare).classList.add('highlight');
                 game.moves({ square: selectedSquare, verbose: true }).forEach(m => document.getElementById(m.to).classList.add('valid-move'));
             }
-            updateStatus(); renderHistory(); updateEvaluation();
+            renderDrawings(); updateStatus(); renderHistory(); updateEvaluation();
         }
 
         // --- MOVIMIENTOS ---
@@ -437,9 +457,21 @@
             if (game.game_over() || isThinking || !gameActive) return;
             const botDiff = parseInt(document.getElementById('bot-difficulty').value);
             
-            // Bloquear clics si es el turno del bot
             const isBotTurn = (botDiff > 0 && game.turn() !== playerColor);
-            if (isBotTurn) return;
+            clearDrawings();
+
+            if (isBotTurn) {
+                if (selectedSquare) {
+                    if (selectedSquare !== squareId) premove = { from: selectedSquare, to: squareId, promotion: 'q' };
+                    selectedSquare = null; updateBoard();
+                } else {
+                    const piece = game.get(squareId); 
+                    if (piece && piece.color === playerColor) { selectedSquare = squareId; vibrate(10); updateBoard(); }
+                }
+                return;
+            }
+            
+            premove = null;
 
             if (selectedSquare) {
                 const moveObj = game.moves({ verbose: true }).find(m => m.from === selectedSquare && m.to === squareId);
@@ -462,6 +494,7 @@
         }
 
         function executeMove(moveObj) {
+            clearDrawings();
             const isFirstMove = game.history().length === 0;
             if (timeControl.enabled && !isFirstMove) timeLeft[game.turn()] += (timeControl.incrementSecs * 1000) - (performance.now() - turnStartTime);
             lastMove = game.move({ from: moveObj.from, to: moveObj.to, promotion: 'q' }); selectedSquare = null;
@@ -498,7 +531,23 @@
                 move = getGreedyMove(); // Fallback si no carga SF
             }
 
-            if (move && !game.game_over()) executeMove(move);
+            if (move && !game.game_over()) {
+                executeMove(move);
+                
+                // Intentar ejecutar Premove
+                if (premove && !game.game_over() && game.turn() === playerColor) {
+                    const pmObj = game.moves({ verbose: true }).find(m => m.from === premove.from && m.to === premove.to);
+                    if (pmObj) {
+                        premove = null;
+                        setTimeout(() => {
+                            executeMove(pmObj);
+                            if (level > 0 && !game.game_over()) { isThinking = true; setStatusText("Bot pensando...", false); setTimeout(() => makeBotMove(level), 50); }
+                        }, 150); // Ligero retardo visual
+                    } else {
+                        premove = null; updateBoard();
+                    }
+                }
+            }
             isThinking = false;
         }
 
@@ -547,12 +596,15 @@
         }
 
         function updateEvaluation() {
+            const evalBar = document.getElementById('eval-bar');
+            const materialScoreTxt = document.getElementById('material-score');
             const score = evaluateMaterialOnly(game.board());
             materialScoreTxt.textContent = score > 0 ? `+${(score/10).toFixed(1)}` : (score < 0 ? (score/10).toFixed(1) : "0.0");
             evalBar.style.height = `${Math.max(5, Math.min(95, 50 - (score / 60) * 50))}%`;
         }
 
         function renderHistory() {
+            const historyElement = document.getElementById('move-history');
             let html = ''; const h = game.history();
             for (let i = 0; i < h.length; i += 2) html += `<div class="grid grid-cols-6 hover:bg-slate-800 p-1 rounded border-b border-slate-800"><span class="text-slate-500 col-span-1">${Math.floor(i / 2) + 1}.</span><span class="col-span-2 font-bold text-white">${h[i]}</span><span class="col-span-3 text-slate-300">${h[i+1]||''}</span></div>`;
             historyElement.innerHTML = html; historyElement.scrollTop = historyElement.scrollHeight;
@@ -616,6 +668,60 @@
             document.getElementById('history-modal').classList.remove('hidden');
         });
 
+        // --- SISTEMA DE DIBUJO DE FLECHAS Y CASILLAS ---
+        function clearDrawings() { rightClickHighlights.clear(); arrows = []; renderDrawings(); }
+        
+        function getSquareCenter(sq) {
+            const isFlipped = (playerColor === 'b');
+            let file = sq.charCodeAt(0) - 97; let rank = sq.charCodeAt(1) - 49;
+            let col = isFlipped ? 7 - file : file; let row = isFlipped ? rank : 7 - rank;
+            return { x: (col + 0.5) * 12.5, y: (row + 0.5) * 12.5 };
+        }
+        
+        function renderDrawings() {
+            document.querySelectorAll('.rc-highlight').forEach(el => el.classList.remove('rc-highlight'));
+            rightClickHighlights.forEach(sq => document.getElementById(sq)?.classList.add('rc-highlight'));
+            const group = document.getElementById('arrows-group'); if (!group) return;
+            group.innerHTML = '';
+            arrows.forEach(a => {
+                const start = getSquareCenter(a.from); const end = getSquareCenter(a.to);
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute('x1', `${start.x}%`); line.setAttribute('y1', `${start.y}%`); line.setAttribute('x2', `${end.x}%`); line.setAttribute('y2', `${end.y}%`);
+                line.setAttribute('stroke', 'rgba(235, 97, 80, 0.8)'); line.setAttribute('stroke-width', '2%'); line.setAttribute('marker-end', 'url(#arrowhead)'); line.setAttribute('opacity', '0.9');
+                group.appendChild(line);
+            });
+        }
+
+        function getSquareFromEvent(e, boardEl) {
+            const rect = boardEl.getBoundingClientRect();
+            let x = e.clientX - rect.left; let y = e.clientY - rect.top;
+            if (x < 0 || x > rect.width || y < 0 || y > rect.height) return null;
+            const col = Math.floor(x / (rect.width / 8)); const row = Math.floor(y / (rect.height / 8));
+            const isFlipped = (playerColor === 'b');
+            const f = isFlipped ? 7 - col : col; const r = isFlipped ? row : 7 - row;
+            return String.fromCharCode(97 + f) + (r + 1);
+        }
+
+        const mainBoardEl = document.getElementById('board');
+        mainBoardEl.addEventListener('contextmenu', e => e.preventDefault());
+        document.getElementById('board-wrapper').addEventListener('contextmenu', e => e.preventDefault());
+        mainBoardEl.addEventListener('mousedown', e => { if (e.button === 2) rightDragStart = getSquareFromEvent(e, mainBoardEl); else clearDrawings(); });
+        mainBoardEl.addEventListener('mouseup', e => {
+            if (e.button === 2 && rightDragStart) {
+                const rightDragEnd = getSquareFromEvent(e, mainBoardEl);
+                if (rightDragEnd) {
+                    if (rightDragStart === rightDragEnd) {
+                        if (rightClickHighlights.has(rightDragStart)) rightClickHighlights.delete(rightDragStart); else rightClickHighlights.add(rightDragStart);
+                    } else {
+                        const arrowIdx = arrows.findIndex(a => a.from === rightDragStart && a.to === rightDragEnd);
+                        if (arrowIdx >= 0) arrows.splice(arrowIdx, 1); else arrows.push({from: rightDragStart, to: rightDragEnd});
+                    }
+                    renderDrawings();
+                }
+                rightDragStart = null;
+            }
+        });
+
         document.getElementById('close-history-modal').addEventListener('click', () => document.getElementById('history-modal').classList.add('hidden'));
 
         window.loadHistoryGame = function(index) {
@@ -657,31 +763,49 @@
 
             for (let i = 0; i < movesSanArray.length; i++) {
                 const moveStr = movesSanArray[i];
-                const preEvalCp = scoreToCp(await getStockfishEval(tempGame.fen(), 6));
+                
+                let fenPre = tempGame.fen();
+                let turnPre = tempGame.turn();
+                let preEvalCp = 0;
+                if (!tempGame.game_over()) preEvalCp = scoreToCp(await getStockfishEval(fenPre, 10));
+                let absPreEvalCp = turnPre === 'w' ? preEvalCp : -preEvalCp;
+
                 const preMat = evaluateMaterialOnly(tempGame.board()); 
                 
                 const moveObj = tempGame.move(moveStr);
                 const currentFen = tempGame.fen();
+                let turnPost = tempGame.turn();
                 
-                const postEvalCp = scoreToCp(await getStockfishEval(currentFen, 6));
+                let absPostEvalCp = 0;
+                if (tempGame.game_over()) {
+                    if (tempGame.in_checkmate()) absPostEvalCp = turnPost === 'w' ? -10000 : 10000;
+                    else absPostEvalCp = 0;
+                } else {
+                    let postEvalCp = scoreToCp(await getStockfishEval(currentFen, 10));
+                    absPostEvalCp = turnPost === 'w' ? postEvalCp : -postEvalCp;
+                }
                 const postMat = evaluateMaterialOnly(tempGame.board());
 
-                let sfDelta = moveObj.color === 'w' ? (postEvalCp - preEvalCp) : (preEvalCp - postEvalCp);
-                let matDelta = moveObj.color === 'w' ? (postMat - preMat) : (preMat - postMat);
+                let sfDeltaCp = moveObj.color === 'w' ? (absPostEvalCp - absPreEvalCp) : (absPreEvalCp - absPostEvalCp);
+                
+                // Deshacer la inversión visual de la función para el cálculo matemático del análisis
+                const preMatRaw = playerColor === 'w' ? preMat : -preMat;
+                const postMatRaw = playerColor === 'w' ? postMat : -postMat;
+                let matDelta = moveObj.color === 'w' ? (postMatRaw - preMatRaw) : (preMatRaw - postMatRaw);
 
                 let label = 'Buena'; let cssColor = 'text-slate-400'; let badgeText = ''; let badgeClass = '';
 
                 let isBrilliant = false;
-                if (matDelta <= -30 && sfDelta > -50) isBrilliant = true;
-                if (matDelta <= -10 && sfDelta > 150) isBrilliant = true;
-                if (sfDelta >= 300) isBrilliant = true;
+                if (matDelta <= -30 && sfDeltaCp > -50) isBrilliant = true;
+                if (matDelta <= -10 && sfDeltaCp > 150) isBrilliant = true;
+                if (sfDeltaCp >= 300) isBrilliant = true;
 
                 if (isBrilliant) { label = 'Brillante'; badgeText = '!!'; badgeClass = 'bg-cyan-500'; cssColor = 'text-cyan-400'; stats.brilliant++; }
-                else if (sfDelta <= -300) { label = 'Grave'; badgeText = '??'; badgeClass = 'bg-red-500'; cssColor = 'text-red-500'; stats.blunder++; }
-                else if (sfDelta <= -100) { label = 'Error'; badgeText = '?'; badgeClass = 'bg-orange-500'; cssColor = 'text-orange-500'; stats.mistake++; }
-                else if (sfDelta <= -40) { label = 'Imprecisa'; badgeText = '?!'; badgeClass = 'bg-yellow-500'; cssColor = 'text-yellow-500'; stats.inaccuracy++; }
-                else if (sfDelta >= -10 && sfDelta <= 50 && !isBrilliant) { label = 'Mejor'; badgeText = '★'; badgeClass = 'bg-green-500'; cssColor = 'text-green-500'; stats.best++; }
-                else if (sfDelta > -40 && !isBrilliant) { label = 'Excelente'; badgeText = '✓'; badgeClass = 'bg-lime-500'; cssColor = 'text-lime-400'; stats.excellent++; }
+                else if (sfDeltaCp <= -300) { label = 'Grave'; badgeText = '??'; badgeClass = 'bg-red-500'; cssColor = 'text-red-500'; stats.blunder++; }
+                else if (sfDeltaCp <= -100) { label = 'Error'; badgeText = '?'; badgeClass = 'bg-orange-500'; cssColor = 'text-orange-500'; stats.mistake++; }
+                else if (sfDeltaCp <= -40) { label = 'Imprecisa'; badgeText = '?!'; badgeClass = 'bg-yellow-500'; cssColor = 'text-yellow-500'; stats.inaccuracy++; }
+                else if (sfDeltaCp >= -10 && sfDeltaCp <= 50 && !isBrilliant) { label = 'Mejor'; badgeText = '★'; badgeClass = 'bg-green-500'; cssColor = 'text-green-500'; stats.best++; }
+                else if (sfDeltaCp > -40 && !isBrilliant) { label = 'Excelente'; badgeText = '✓'; badgeClass = 'bg-lime-500'; cssColor = 'text-lime-400'; stats.excellent++; }
                 else { stats.good++; }
 
                 analysisData.push({ moveIndex: i, moveObj: moveObj, fen: currentFen, san: moveObj.san, color: moveObj.color, label, cssColor, badgeText, badgeClass });
@@ -745,6 +869,20 @@
             let moveInfo = null;
             if (index >= 0) { moveInfo = analysisData[index]; fen = moveInfo.fen; }
 
+            const topInfo = document.getElementById('ana-top-info');
+            if (topInfo) {
+                if (moveInfo && moveInfo.bestMoveSan) {
+                    const isMatch = moveInfo.bestMoveSan === moveInfo.san;
+                    topInfo.innerHTML = isMatch 
+                        ? `<span class="text-green-500">★ ¡Encontraste la mejor jugada! (${moveInfo.bestMoveSan})</span>`
+                        : `<span class="text-slate-300">Sugerencia del Motor:</span> <span class="font-bold text-white bg-slate-700 px-3 py-1 rounded shadow">${moveInfo.bestMoveSan}</span>`;
+                } else if (index === -1) {
+                    topInfo.innerHTML = `<span class="text-slate-400">Posición Inicial</span>`;
+                } else {
+                    topInfo.innerHTML = `<span class="text-slate-400">Partida Finalizada</span>`;
+                }
+            }
+
             const boardEl = document.getElementById('analysis-board'); if (!boardEl) return;
             // Limpiar tablero análisis
             document.querySelectorAll('#analysis-board .square').forEach(sq => { sq.innerHTML = ''; sq.classList.remove('last-move'); });
@@ -789,6 +927,18 @@
         document.getElementById('btn-surrender').addEventListener('click', () => {
             if (!gameActive || isThinking) return;
             if (confirm("¿Rendirse?")) endGame(`¡Te has rendido! Ganan <span class="font-bold">${game.turn() === 'w' ? 'Negras' : 'Blancas'}</span>`);
+        });
+
+        // Navegación con teclado en el modal de Análisis
+        document.addEventListener('keydown', (e) => {
+            const analysisModal = document.getElementById('analysis-modal');
+            if (analysisModal && !analysisModal.classList.contains('hidden')) {
+                if (e.key === 'ArrowLeft') {
+                    e.preventDefault(); goToAnalysisMove(currentAnalysisIndex - 1);
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault(); goToAnalysisMove(currentAnalysisIndex + 1);
+                }
+            }
         });
 
         // Setup inicial app
