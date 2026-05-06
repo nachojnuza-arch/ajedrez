@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ajedrez Pro: Stockfish y Análisis</title>
+    
+    <!-- Configuración de Web App / PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg">
+    
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- chess.js -->
@@ -747,6 +753,19 @@
         });
 
         createBoard(); setupGameSettings();
+
+        // --- REGISTRO DE SERVICE WORKER (PWA OFFLINE) ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                .then(registration => {
+                    console.log('Modo Offline Activado con éxito (ServiceWorker).');
+                })
+                .catch(error => {
+                    console.log('Error al activar Modo Offline:', error);
+                });
+            });
+        }
     </script>
 </body>
 </html>
