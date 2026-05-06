@@ -1,0 +1,23 @@
+{
+  "name": "Ajedrez Pro con Stockfish",
+  "short_name": "Ajedrez Pro",
+  "description": "Juego de ajedrez avanzado con IA Stockfish y herramientas de análisis.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e293b",
+  "icons": [
+    {
+      "src": "[https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg](https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg)",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "[https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg](https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg)",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
